@@ -1,5 +1,6 @@
 const { data, error } = await supabase
   .from("spots")
+  .select("*");
   .insert({
     name: nom,
     description: description,
