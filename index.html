@@ -27,11 +27,15 @@ input,textarea,select{width:100%;font:inherit;margin:5px 0 8px;padding:10px;bord
 <div class="actions"><button class="cancel" id="close">Annuler</button><button class="save" id="save">Enregistrer</button></div></div>
 <div id="info" class="panel info-panel"><button id="closeInfo" class="close-info" aria-label="Fermer" title="Fermer">×</button><h2 id="infoName"></h2><div id="infoMeta" class="muted"></div><div id="infoGallery" class="gallery"></div><div id="infoPhotoCount" class="photo-count"></div><p id="infoDesc"></p>
 <a id="googleMaps" class="maps-btn" target="_blank" rel="noopener">📍 Ouvrir dans Google Maps</a><button class="maps-btn" id="edit" style="margin-top:8px;background:#188038;color:#fff;border:0">✏️ Modifier le spot</button><button class="delete-btn" id="delete">Supprimer ce spot</button></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const SUPABASE_URL='https://bhqhbiaejcbijlprjimy.supabase.co';
 const SUPABASE_KEY='sb_publishable_jplSlzJVE2g_TxQB3nlp1Q_hHlhEpE1';
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const sb=window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
