@@ -81,7 +81,7 @@ photos=[];
 ========================= */
 
 async function loadSpots(){
-  const {data,error}=await supabase
+  const {data,error}=await sb
     .from('spots')
     .select('*')
     .order('created_at',{ascending:true});
@@ -112,7 +112,7 @@ async function loadSpots(){
 
 
 async function addSpotToSupabase(data){
-  const {data:created,error}=await supabase
+  const {data:created,error}=await sb
     .from('spots')
     .insert({
       name:data.name,
@@ -137,7 +137,7 @@ async function addSpotToSupabase(data){
 
 
 async function updateSpotInSupabase(id,data){
-  const {data:updated,error}=await supabase
+  const {data:updated,error}=await sb
     .from('spots')
     .update({
       name:data.name,
@@ -163,7 +163,7 @@ async function updateSpotInSupabase(id,data){
 
 
 async function deleteSpotFromSupabase(id){
-  const {error}=await supabase
+  const {error}=await sb
     .from('spots')
     .delete()
     .eq('id',id);
