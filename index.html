@@ -390,6 +390,86 @@ font-weight:700;
 margin-top:8px
 }
 
+/* =========================
+   NOUVEAU : CHOIX DU TRACÉ
+========================= */
+
+#drawChoice{
+z-index:10002
+}
+
+.draw-choice-actions{
+display:flex;
+gap:8px;
+margin-top:14px
+}
+
+.draw-choice-btn{
+flex:1;
+padding:13px 10px;
+border:0;
+border-radius:11px;
+background:#f1f3f4;
+color:#202124;
+font-weight:700;
+font-size:14px;
+cursor:pointer
+}
+
+.draw-choice-btn:hover{
+background:#e8eaed
+}
+
+.draw-choice-btn:active{
+transform:scale(.98)
+}
+
+#finishLine{
+display:none;
+position:fixed;
+z-index:10003;
+left:50%;
+transform:translateX(-50%);
+bottom:88px;
+padding:11px 16px;
+border:0;
+border-radius:12px;
+background:#188038;
+color:#fff;
+font-weight:700;
+font-size:14px;
+box-shadow:0 3px 12px #0004;
+cursor:pointer
+}
+
+#finishLine.show{
+display:block
+}
+
+/* Calques : décalage sous les contrôles existants */
+.leaflet-top.leaflet-right{
+top:72px
+}
+
+.leaflet-control-layers{
+border-radius:12px!important;
+box-shadow:0 3px 12px #0003!important;
+border:1px solid #d1d5db!important
+}
+
+.leaflet-control-layers-toggle{
+width:42px!important;
+height:42px!important
+}
+
+@media(max-width:699px){
+
+.leaflet-control-layers{
+font-size:13px
+}
+
+}
+
 @media(min-width:700px){
 .panel{
 left:auto;
@@ -421,6 +501,8 @@ bottom:16px
 <button class="zoomBtn" id="zoomOut" title="Zoom arrière" aria-label="Zoom arrière">−</button>
 </div>
 
+<button id="finishLine" type="button">✓ Terminer la ligne</button>
+
 <div id="credits">
 <a href="https://chatgpt.com" target="_blank" rel="noopener">made with ChatGPT®</a>
 </div>
@@ -441,11 +523,40 @@ bottom:16px
 <div id="status"></div>
 
 
-<div id="form" class="panel">
+<!-- CHOIX DU TYPE DE TRACÉ -->
+
+<div id="drawChoice" class="panel">
 
 <h2>📍 Ajouter un spot</h2>
 
 <div class="muted">
+Choisis le type de tracé à ajouter.
+</div>
+
+<div class="draw-choice-actions">
+
+<button class="draw-choice-btn" id="addPoint">
+📍 Ajouter un point
+</button>
+
+<button class="draw-choice-btn" id="addLine">
+〰️ Ajouter une ligne
+</button>
+
+</div>
+
+<div class="actions" style="margin-top:8px">
+<button class="cancel" id="cancelDrawChoice">Annuler</button>
+</div>
+
+</div>
+
+
+<div id="form" class="panel">
+
+<h2>📍 Ajouter un spot</h2>
+
+<div id="formHint" class="muted">
 Clique sur la carte pour placer précisément le spot.
 </div>
 
@@ -462,6 +573,7 @@ Clique sur la carte pour placer précisément le spot.
 <option>Pumptrack</option>
 <option>Spot urbain</option>
 <option>Rampe</option>
+<option>Skatepark</option>
 <option>Autre</option>
 </select>
 </div>
@@ -469,7 +581,7 @@ Clique sur la carte pour placer précisément le spot.
 <div>
 <label>Difficulté</label>
 <select id="diff">
-<option value="0">⚪ Varié</option>
+<option value="0">🔘 Varié</option>
 <option value="1">🟢 Easy</option>
 <option value="2">🟡 Plutôt easy</option>
 <option value="3">🟠 Moyen</option>
@@ -553,6 +665,10 @@ SUPABASE_KEY
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
 
+<!-- LEAFLET ROTATE -->
+
+<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
+
 <script>
 
 const B=[[50.48,2.85],[50.82,3.35]];
@@ -562,12 +678,20 @@ maxBounds:B,
 maxBoundsViscosity:.8,
 minZoom:10,
 maxZoom:18,
-zoomControl:false
+zoomControl:false,
+rotate:true,
+touchRotate:true,
+bearing:0
 });
 
 map.fitBounds(B);
 
-L.tileLayer(
+
+/* =========================
+   CALQUES
+========================= */
+
+const planLayer=L.tileLayer(
 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 {
 maxZoom:19,
@@ -576,8 +700,35 @@ attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreet
 ).addTo(map);
 
 
+const satelliteLayer=L.tileLayer(
+'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+{
+maxZoom:19,
+maxNativeZoom:18,
+attribution:'Tiles &copy; Esri'
+}
+);
+
+
+L.control.layers(
+{
+'🗺️ Plan':planLayer,
+'🛰️ Satellite':satelliteLayer
+},
+null,
+{
+collapsed:true,
+position:'topright'
+}
+).addTo(map);
+
+
+/* =========================
+   NIVEAUX
+========================= */
+
 const levels={
-0:['⚪','Varié'],
+0:['🔘','Varié'],
 1:['🟢','Easy'],
 2:['🟡','Plutôt easy'],
 3:['🟠','Moyen'],
@@ -586,21 +737,38 @@ const levels={
 };
 
 
+/* =========================
+   ZOOM
+========================= */
+
 document.getElementById('zoomIn').onclick=()=>{
+
 map.zoomIn();
+
 };
 
 document.getElementById('zoomOut').onclick=()=>{
+
 map.zoomOut();
+
 };
 
 
+/* =========================
+   VARIABLES
+========================= */
+
 let spots=[];
 let markers=[];
+let lineLayers=[];
 let placing=false;
 let point=null;
 let selected=null;
 let photos=[];
+
+let drawMode=null;
+let linePoints=[];
+let currentLine=null;
 
 
 /* =========================
@@ -615,8 +783,102 @@ x.textContent=t;
 x.style.display='block';
 
 setTimeout(()=>{
+
 x.style.display='none';
+
 },1800);
+
+}
+
+
+/* =========================
+   OUTILS GÉOMÉTRIE
+========================= */
+
+function normalizeGeometry(g){
+
+if(!g)return null;
+
+if(
+typeof g==='object' &&
+g.type==='LineString' &&
+Array.isArray(g.coordinates)
+){
+
+return {
+
+type:'LineString',
+
+coordinates:g.coordinates
+.filter(c=>
+Array.isArray(c)&&
+c.length>=2&&
+Number.isFinite(Number(c[0]))&&
+Number.isFinite(Number(c[1]))
+)
+.map(c=>[
+Number(c[0]),
+Number(c[1])
+])
+
+};
+
+}
+
+return null;
+
+}
+
+
+function geometryToLatLngs(g){
+
+const geometry=
+normalizeGeometry(g);
+
+if(!geometry)return [];
+
+return geometry.coordinates.map(c=>[
+Number(c[1]),
+Number(c[0])
+]);
+
+}
+
+
+function lineAnchor(s){
+
+const geometry=
+normalizeGeometry(s.geometry);
+
+if(
+geometry&&
+geometry.coordinates.length
+){
+
+return {
+
+lat:Number(geometry.coordinates[0][1]),
+
+lng:Number(geometry.coordinates[0][0])
+
+};
+
+}
+
+return {
+
+lat:Number(s.lat),
+
+lng:Number(s.lng)
+
+};
+
+}
+
+
+function getGooglePosition(s){
+
+return lineAnchor(s);
 
 }
 
@@ -671,7 +933,10 @@ lng:Number(s.longitude),
 photos:
 Array.isArray(s.photos)
 ?s.photos.slice(0,5)
-:[]
+:[],
+
+geometry:
+normalizeGeometry(s.geometry)
 
 }));
 
@@ -710,7 +975,10 @@ longitude:Number(data.lng),
 photos:
 Array.isArray(data.photos)
 ?data.photos.slice(0,5)
-:[]
+:[],
+
+geometry:
+data.geometry||null
 
 })
 .select()
@@ -762,7 +1030,10 @@ longitude:Number(data.lng),
 photos:
 Array.isArray(data.photos)
 ?data.photos.slice(0,5)
-:[]
+:[],
+
+geometry:
+data.geometry||null
 
 })
 .eq('id',id);
@@ -826,6 +1097,7 @@ c=>({
 "'":'&#039;'
 
 }[c])
+
 );
 
 }
@@ -848,6 +1120,23 @@ Math.max(
 Number(d)||0
 )
 );
+
+if(d===0){
+
+return L.divIcon({
+
+className:'',
+
+html:
+'<div style="font-size:27px;color:#d1d5db;text-shadow:0 1px 2px #0005">🔘</div>',
+
+iconSize:[28,28],
+
+iconAnchor:[14,14]
+
+});
+
+}
 
 return L.divIcon({
 
@@ -874,10 +1163,22 @@ iconAnchor:[14,14]
 function render(){
 
 markers.forEach(m=>{
+
 map.removeLayer(m);
+
 });
 
 markers=[];
+
+
+lineLayers.forEach(l=>{
+
+map.removeLayer(l);
+
+});
+
+lineLayers=[];
+
 
 spots.forEach((s,i)=>{
 
@@ -888,6 +1189,67 @@ Math.max(
 Number(s.diff)||0
 )
 );
+
+
+const geometry=
+normalizeGeometry(s.geometry);
+
+
+/* LIGNE */
+
+if(
+geometry&&
+geometry.coordinates.length>=2
+){
+
+let latlngs=
+geometryToLatLngs(geometry);
+
+
+let line=L.polyline(
+latlngs,
+{
+color:'#188038',
+weight:5,
+opacity:.9,
+lineCap:'round',
+lineJoin:'round'
+}
+).addTo(map);
+
+
+line.bindPopup(
+
+'<b>🚵 '+esc(s.name)+'</b><br>'+
+levels[d][0]+' '+
+levels[d][1]+
+' · '+
+esc(s.type)+
+'<br>'+
+'<a href="'+
+gmaps(
+lineAnchor(s).lat,
+lineAnchor(s).lng
+)+
+'" target="_blank">'+
+'Ouvrir dans Google Maps →'+
+'</a>'+
+'<br>'+
+'<button onclick="showInfo('+i+')">'+
+'Voir le spot'+
+'</button>'
+
+);
+
+
+lineLayers.push(line);
+
+return;
+
+}
+
+
+/* POINT */
 
 let m=L.marker(
 [s.lat,s.lng],
@@ -922,14 +1284,78 @@ markers.push(m);
 
 
 /* =========================
-   AJOUT
+   CHOIX DU TRACÉ
 ========================= */
 
 document.getElementById('add').onclick=()=>{
 
-placing=true;
+placing=false;
+
+drawMode=null;
+
+point=null;
+
+linePoints=[];
+
+if(currentLine){
+
+map.removeLayer(currentLine);
+
+currentLine=null;
+
+}
 
 document.getElementById('info')
+.classList.remove('show');
+
+document.getElementById('form')
+.classList.remove('show');
+
+document.getElementById('drawChoice')
+.classList.add('show');
+
+};
+
+
+document.getElementById('cancelDrawChoice').onclick=()=>{
+
+placing=false;
+
+drawMode=null;
+
+point=null;
+
+linePoints=[];
+
+if(currentLine){
+
+map.removeLayer(currentLine);
+
+currentLine=null;
+
+}
+
+document.getElementById('drawChoice')
+.classList.remove('show');
+
+};
+
+
+/* =========================
+   AJOUT POINT
+========================= */
+
+document.getElementById('addPoint').onclick=()=>{
+
+drawMode='point';
+
+placing=true;
+
+point=null;
+
+linePoints=[];
+
+document.getElementById('drawChoice')
 .classList.remove('show');
 
 msg(
@@ -939,20 +1365,146 @@ msg(
 };
 
 
+/* =========================
+   AJOUT LIGNE
+========================= */
+
+document.getElementById('addLine').onclick=()=>{
+
+drawMode='line';
+
+placing=true;
+
+point=null;
+
+linePoints=[];
+
+document.getElementById('drawChoice')
+.classList.remove('show');
+
+document.getElementById('finishLine')
+.classList.remove('show');
+
+msg(
+'Clique plusieurs fois sur la carte pour tracer la ligne'
+);
+
+};
+
+
+/* =========================
+   CLIC CARTE
+========================= */
+
 map.on('click',e=>{
 
 if(!placing)return;
 
+
+/* POINT */
+
+if(drawMode==='point'){
+
 point=e.latlng;
 
 placing=false;
+
+document.getElementById('formHint')
+.textContent=
+'Clique sur la carte pour placer précisément le spot.';
 
 document.getElementById('form')
 .classList.add('show');
 
 document.getElementById('name').focus();
 
+return;
+
+}
+
+
+/* LIGNE */
+
+if(drawMode==='line'){
+
+linePoints.push([
+Number(e.latlng.lat.toFixed(7)),
+Number(e.latlng.lng.toFixed(7))
+]);
+
+
+if(!currentLine){
+
+currentLine=L.polyline(
+linePoints,
+{
+color:'#188038',
+weight:5,
+opacity:.9,
+lineCap:'round',
+lineJoin:'round'
+}
+).addTo(map);
+
+}else{
+
+currentLine.setLatLngs(linePoints);
+
+}
+
+
+if(linePoints.length>=2){
+
+document.getElementById('finishLine')
+.classList.add('show');
+
+}
+
+}
+
 });
+
+
+/* =========================
+   TERMINER LIGNE
+========================= */
+
+document.getElementById('finishLine').onclick=()=>{
+
+if(
+drawMode!=='line'||
+linePoints.length<2
+){
+
+msg('Ajoute au moins 2 points');
+
+return;
+
+}
+
+
+const first=linePoints[0];
+
+point={
+lat:first[0],
+lng:first[1]
+};
+
+placing=false;
+
+document.getElementById('finishLine')
+.classList.remove('show');
+
+document.getElementById('formHint')
+.textContent=
+'La ligne est tracée. Tu peux maintenant remplir les informations du spot.';
+
+document.getElementById('form')
+.classList.add('show');
+
+document.getElementById('name').focus();
+
+};
 
 
 /* =========================
@@ -1031,7 +1583,9 @@ await new Promise(r=>{
 let x=new FileReader();
 
 x.onload=()=>{
+
 r(x.result);
+
 };
 
 x.readAsDataURL(f);
@@ -1063,6 +1617,21 @@ placing=false;
 
 selected=null;
 
+drawMode=null;
+
+linePoints=[];
+
+if(currentLine){
+
+map.removeLayer(currentLine);
+
+currentLine=null;
+
+}
+
+document.getElementById('finishLine')
+.classList.remove('show');
+
 document.getElementById('form')
 .classList.remove('show');
 
@@ -1071,6 +1640,10 @@ document.getElementById('save')
 
 document.getElementById('save')
 .dataset.editing='';
+
+document.getElementById('formHint')
+.textContent=
+'Clique sur la carte pour placer précisément le spot.';
 
 renderPreview();
 
@@ -1100,11 +1673,57 @@ return;
 
 }
 
+
 let editing=
 document.getElementById('save')
 .dataset.editing==='1' &&
 selected!==null;
 
+
+let geometry=null;
+
+
+/* NOUVELLE LIGNE */
+
+if(
+drawMode==='line'&&
+linePoints.length>=2
+){
+
+geometry={
+
+type:'LineString',
+
+coordinates:
+linePoints.map(p=>[
+Number(p[1]),
+Number(p[0])
+])
+
+};
+
+}
+
+
+/* MODIFICATION D'UNE LIGNE */
+
+if(editing){
+
+const current=spots[selected];
+
+if(
+normalizeGeometry(current.geometry)
+){
+
+geometry=
+normalizeGeometry(current.geometry);
+
+}
+
+}
+
+
+/* DONNÉES */
 
 let data={
 
@@ -1130,7 +1749,9 @@ lng:
 Number(point.lng.toFixed(7)),
 
 photos:
-photos.slice(0,5)
+photos.slice(0,5),
+
+geometry:geometry
 
 };
 
@@ -1201,6 +1822,23 @@ point=null;
 
 photos=[];
 
+placing=false;
+
+drawMode=null;
+
+linePoints=[];
+
+if(currentLine){
+
+map.removeLayer(currentLine);
+
+currentLine=null;
+
+}
+
+document.getElementById('finishLine')
+.classList.remove('show');
+
 document.getElementById('form')
 .classList.remove('show');
 
@@ -1209,6 +1847,10 @@ document.getElementById('save')
 
 document.getElementById('save')
 .dataset.editing='';
+
+document.getElementById('formHint')
+.textContent=
+'Clique sur la carte pour placer précisément le spot.';
 
 render();
 
@@ -1252,6 +1894,31 @@ document.getElementById('infoName')
 '🚵 '+s.name;
 
 
+const geometry=
+normalizeGeometry(s.geometry);
+
+
+let anchor=
+lineAnchor(s);
+
+
+if(
+geometry&&
+geometry.coordinates.length>=2
+){
+
+document.getElementById('infoMeta')
+.textContent=
+l[0]+' '+
+l[1]+
+' · '+
+s.type+
+' · Ligne · '+
+geometry.coordinates.length+
+' points';
+
+}else{
+
 document.getElementById('infoMeta')
 .textContent=
 l[0]+' '+
@@ -1262,6 +1929,8 @@ s.type+
 Number(s.lat).toFixed(7)+
 ', '+
 Number(s.lng).toFixed(7);
+
+}
 
 
 document.getElementById('infoDesc')
@@ -1292,7 +1961,7 @@ ps.length+
 
 document.getElementById('googleMaps')
 .href=
-gmaps(s.lat,s.lng);
+gmaps(anchor.lat,anchor.lng);
 
 
 document.getElementById('info')
@@ -1314,6 +1983,12 @@ if(selected===null)return;
 
 let s=spots[selected];
 
+let geometry=
+normalizeGeometry(s.geometry);
+
+
+/* POINT DE RÉFÉRENCE */
+
 point={
 
 lat:Number(s.lat),
@@ -1322,6 +1997,8 @@ lng:Number(s.lng)
 
 };
 
+
+/* PHOTOS */
 
 photos=
 Array.isArray(s.photos)
@@ -1363,6 +2040,33 @@ document.getElementById('desc')
 
 
 renderPreview();
+
+
+/* LIGNE EXISTANTE */
+
+if(
+geometry&&
+geometry.coordinates.length>=2
+){
+
+drawMode='line';
+
+linePoints=
+geometryToLatLngs(geometry)
+.map(p=>[
+Number(p[0]),
+Number(p[1])
+]);
+
+
+}else{
+
+drawMode='point';
+
+linePoints=[];
+
+}
+
 
 document.getElementById('info')
 .classList.remove('show');
