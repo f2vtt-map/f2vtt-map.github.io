@@ -185,6 +185,12 @@ color:#9ca3af;
 font-size:13px
 }
 
+#lockVersion{
+margin:-8px 0 14px;
+color:#6b7280;
+font-size:11px
+}
+
 #lockPassword{
 width:100%;
 font:inherit;
@@ -488,6 +494,7 @@ bottom:16px
 <img id="lockLogo" src="logo.png" alt="F2VTT logo">
 <h1>F2VTT Map</h1>
 <p>Entre le mot de passe pour accéder à la carte.</p>
+<div id="lockVersion">Version 11</div>
 <input id="lockPassword" type="password" autocomplete="off" placeholder="Mot de passe">
 <button id="lockSubmit">Accéder</button>
 <div id="lockError" aria-live="polite"></div>
@@ -681,7 +688,8 @@ maxZoom:18,
 zoomControl:false,
 rotate:true,
 touchRotate:true,
-bearing:0
+bearing:0,
+zoomAnimation:false
 });
 
 map.fitBounds(B);
@@ -1213,7 +1221,8 @@ color:'#188038',
 weight:5,
 opacity:.9,
 lineCap:'round',
-lineJoin:'round'
+lineJoin:'round',
+renderer:L.canvas()
 }
 ).addTo(map);
 
@@ -1279,6 +1288,37 @@ gmaps(s.lat,s.lng)+
 markers.push(m);
 
 });
+
+}
+
+
+/* =========================
+   SYNCHRONISATION DES LIGNES
+========================= */
+
+function redrawLines(){
+
+lineLayers.forEach(line=>{
+
+if(
+line &&
+typeof line.redraw==='function'
+){
+
+line.redraw();
+
+}
+
+});
+
+}
+
+map.on('zoomend',redrawLines);
+map.on('moveend',redrawLines);
+
+if(typeof map.on==='function'){
+
+map.on('rotate',redrawLines);
 
 }
 
@@ -1442,7 +1482,8 @@ color:'#188038',
 weight:5,
 opacity:.9,
 lineCap:'round',
-lineJoin:'round'
+lineJoin:'round',
+renderer:L.canvas()
 }
 ).addTo(map);
 
