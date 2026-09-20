@@ -396,10 +396,6 @@ font-weight:700;
 margin-top:8px
 }
 
-/* =========================
-   NOUVEAU : CHOIX DU TRACÉ
-========================= */
-
 #drawChoice{
 z-index:10002
 }
@@ -452,7 +448,6 @@ cursor:pointer
 display:block
 }
 
-/* Calques : décalage sous les contrôles existants */
 .leaflet-top.leaflet-right{
 top:72px
 }
@@ -469,11 +464,9 @@ height:42px!important
 }
 
 @media(max-width:699px){
-
 .leaflet-control-layers{
 font-size:13px
 }
-
 }
 
 @media(min-width:700px){
@@ -494,7 +487,7 @@ bottom:16px
 <img id="lockLogo" src="logo.png" alt="F2VTT logo">
 <h1>F2VTT Map</h1>
 <p>Entre le mot de passe pour accéder à la carte.</p>
-<div id="lockVersion">Version 11</div>
+<div id="lockVersion">Version 11.2</div>
 <input id="lockPassword" type="password" autocomplete="off" placeholder="Mot de passe">
 <button id="lockSubmit">Accéder</button>
 <div id="lockError" aria-live="polite"></div>
@@ -529,9 +522,6 @@ bottom:16px
 
 <div id="status"></div>
 
-
-<!-- CHOIX DU TYPE DE TRACÉ -->
-
 <div id="drawChoice" class="panel">
 
 <h2>📍 Ajouter un spot</h2>
@@ -557,7 +547,6 @@ Choisis le type de tracé à ajouter.
 </div>
 
 </div>
-
 
 <div id="form" class="panel">
 
@@ -620,7 +609,6 @@ Clique sur la carte pour placer précisément le spot.
 
 </div>
 
-
 <div id="info" class="panel info-panel">
 
 <button id="closeInfo" class="close-info" aria-label="Fermer" title="Fermer">×</button>
@@ -649,9 +637,6 @@ Supprimer ce spot
 
 </div>
 
-
-<!-- SUPABASE -->
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
 <script>
@@ -667,12 +652,7 @@ SUPABASE_KEY
 
 </script>
 
-
-<!-- LEAFLET -->
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
-
-<!-- LEAFLET ROTATE -->
 
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 
@@ -694,11 +674,6 @@ zoomAnimation:false
 
 map.fitBounds(B);
 
-
-/* =========================
-   CALQUES
-========================= */
-
 const planLayer=L.tileLayer(
 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 {
@@ -706,7 +681,6 @@ maxZoom:19,
 attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }
 ).addTo(map);
-
 
 const satelliteLayer=L.tileLayer(
 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -716,7 +690,6 @@ maxNativeZoom:18,
 attribution:'Tiles &copy; Esri'
 }
 );
-
 
 L.control.layers(
 {
@@ -730,11 +703,6 @@ position:'topright'
 }
 ).addTo(map);
 
-
-/* =========================
-   NIVEAUX
-========================= */
-
 const levels={
 0:['🔘','Varié'],
 1:['🟢','Easy'],
@@ -744,27 +712,13 @@ const levels={
 5:['⚫','Hard 🔥']
 };
 
-
-/* =========================
-   ZOOM
-========================= */
-
 document.getElementById('zoomIn').onclick=()=>{
-
 map.zoomIn();
-
 };
 
 document.getElementById('zoomOut').onclick=()=>{
-
 map.zoomOut();
-
 };
-
-
-/* =========================
-   VARIABLES
-========================= */
 
 let spots=[];
 let markers=[];
@@ -778,11 +732,6 @@ let drawMode=null;
 let linePoints=[];
 let currentLine=null;
 
-
-/* =========================
-   MESSAGES
-========================= */
-
 function msg(t){
 
 let x=document.getElementById('status');
@@ -791,17 +740,10 @@ x.textContent=t;
 x.style.display='block';
 
 setTimeout(()=>{
-
 x.style.display='none';
-
 },1800);
 
 }
-
-
-/* =========================
-   OUTILS GÉOMÉTRIE
-========================= */
 
 function normalizeGeometry(g){
 
@@ -837,11 +779,9 @@ return null;
 
 }
 
-
 function geometryToLatLngs(g){
 
-const geometry=
-normalizeGeometry(g);
+const geometry=normalizeGeometry(g);
 
 if(!geometry)return [];
 
@@ -852,11 +792,9 @@ Number(c[0])
 
 }
 
-
 function lineAnchor(s){
 
-const geometry=
-normalizeGeometry(s.geometry);
+const geometry=normalizeGeometry(s.geometry);
 
 if(
 geometry&&
@@ -864,36 +802,22 @@ geometry.coordinates.length
 ){
 
 return {
-
 lat:Number(geometry.coordinates[0][1]),
-
 lng:Number(geometry.coordinates[0][0])
-
 };
 
 }
 
 return {
-
 lat:Number(s.lat),
-
 lng:Number(s.lng)
-
 };
 
 }
 
-
 function getGooglePosition(s){
-
 return lineAnchor(s);
-
 }
-
-
-/* =========================
-   SUPABASE - CHARGEMENT
-========================= */
 
 async function loadSpots(){
 
@@ -915,9 +839,7 @@ return;
 spots=(data||[]).map(s=>({
 
 id:s.id,
-
 name:s.name,
-
 type:s.category||'Autre',
 
 diff:
@@ -935,7 +857,6 @@ Number(s.difficulty)
 desc:s.description||'',
 
 lat:Number(s.latitude),
-
 lng:Number(s.longitude),
 
 photos:
@@ -952,11 +873,6 @@ render();
 
 }
 
-
-/* =========================
-   SUPABASE - AJOUT
-========================= */
-
 async function addSpotToSupabase(data){
 
 const difficulty=
@@ -969,15 +885,10 @@ const {data:created,error}=await sb
 .insert({
 
 name:data.name,
-
 description:data.desc||'',
-
 category:data.type||'Autre',
-
 difficulty:difficulty,
-
 latitude:Number(data.lat),
-
 longitude:Number(data.lng),
 
 photos:
@@ -991,7 +902,6 @@ data.geometry||null
 })
 .select()
 .single();
-
 
 if(error){
 
@@ -1007,11 +917,6 @@ return created;
 
 }
 
-
-/* =========================
-   SUPABASE - MODIFICATION
-========================= */
-
 async function updateSpotInSupabase(id,data){
 
 const difficulty=
@@ -1024,15 +929,10 @@ const {error}=await sb
 .update({
 
 name:data.name,
-
 description:data.desc||'',
-
 category:data.type||'Autre',
-
 difficulty:difficulty,
-
 latitude:Number(data.lat),
-
 longitude:Number(data.lng),
 
 photos:
@@ -1045,7 +945,6 @@ data.geometry||null
 
 })
 .eq('id',id);
-
 
 if(error){
 
@@ -1060,11 +959,6 @@ return false;
 return true;
 
 }
-
-
-/* =========================
-   SUPABASE - SUPPRESSION
-========================= */
 
 async function deleteSpotFromSupabase(id){
 
@@ -1087,11 +981,6 @@ return true;
 
 }
 
-
-/* =========================
-   OUTILS
-========================= */
-
 function esc(s){
 
 return String(s||'').replace(
@@ -1110,14 +999,12 @@ c=>({
 
 }
 
-
 function gmaps(lat,lng){
 
 return 'https://www.google.com/maps/dir/?api=1&destination='+
 encodeURIComponent(lat+','+lng);
 
 }
-
 
 function icon(d){
 
@@ -1163,30 +1050,19 @@ iconAnchor:[14,14]
 
 }
 
-
-/* =========================
-   AFFICHER LES SPOTS
-========================= */
-
 function render(){
 
 markers.forEach(m=>{
-
 map.removeLayer(m);
-
 });
 
 markers=[];
 
-
 lineLayers.forEach(l=>{
-
 map.removeLayer(l);
-
 });
 
 lineLayers=[];
-
 
 spots.forEach((s,i)=>{
 
@@ -1198,12 +1074,8 @@ Number(s.diff)||0
 )
 );
 
-
 const geometry=
 normalizeGeometry(s.geometry);
-
-
-/* LIGNE */
 
 if(
 geometry&&
@@ -1212,7 +1084,6 @@ geometry.coordinates.length>=2
 
 let latlngs=
 geometryToLatLngs(geometry);
-
 
 let line=L.polyline(
 latlngs,
@@ -1225,7 +1096,6 @@ lineJoin:'round',
 renderer:L.canvas()
 }
 ).addTo(map);
-
 
 line.bindPopup(
 
@@ -1250,19 +1120,18 @@ lineAnchor(s).lng
 
 );
 
-
 lineLayers.push(line);
 
 return;
 
 }
 
-
-/* POINT */
-
 let m=L.marker(
 [s.lat,s.lng],
-{icon:icon(d)}
+{
+icon:icon(d),
+rotateWithView:true
+}
 ).addTo(map);
 
 m.bindPopup(
@@ -1291,11 +1160,6 @@ markers.push(m);
 
 }
 
-
-/* =========================
-   SYNCHRONISATION DES LIGNES
-========================= */
-
 function redrawLines(){
 
 lineLayers.forEach(line=>{
@@ -1322,27 +1186,16 @@ map.on('rotate',redrawLines);
 
 }
 
-
-/* =========================
-   CHOIX DU TRACÉ
-========================= */
-
 document.getElementById('add').onclick=()=>{
 
 placing=false;
-
 drawMode=null;
-
 point=null;
-
 linePoints=[];
 
 if(currentLine){
-
 map.removeLayer(currentLine);
-
 currentLine=null;
-
 }
 
 document.getElementById('info')
@@ -1356,23 +1209,16 @@ document.getElementById('drawChoice')
 
 };
 
-
 document.getElementById('cancelDrawChoice').onclick=()=>{
 
 placing=false;
-
 drawMode=null;
-
 point=null;
-
 linePoints=[];
 
 if(currentLine){
-
 map.removeLayer(currentLine);
-
 currentLine=null;
-
 }
 
 document.getElementById('drawChoice')
@@ -1380,19 +1226,11 @@ document.getElementById('drawChoice')
 
 };
 
-
-/* =========================
-   AJOUT POINT
-========================= */
-
 document.getElementById('addPoint').onclick=()=>{
 
 drawMode='point';
-
 placing=true;
-
 point=null;
-
 linePoints=[];
 
 document.getElementById('drawChoice')
@@ -1404,19 +1242,11 @@ msg(
 
 };
 
-
-/* =========================
-   AJOUT LIGNE
-========================= */
-
 document.getElementById('addLine').onclick=()=>{
 
 drawMode='line';
-
 placing=true;
-
 point=null;
-
 linePoints=[];
 
 document.getElementById('drawChoice')
@@ -1431,22 +1261,13 @@ msg(
 
 };
 
-
-/* =========================
-   CLIC CARTE
-========================= */
-
 map.on('click',e=>{
 
 if(!placing)return;
 
-
-/* POINT */
-
 if(drawMode==='point'){
 
 point=e.latlng;
-
 placing=false;
 
 document.getElementById('formHint')
@@ -1462,16 +1283,12 @@ return;
 
 }
 
-
-/* LIGNE */
-
 if(drawMode==='line'){
 
 linePoints.push([
 Number(e.latlng.lat.toFixed(7)),
 Number(e.latlng.lng.toFixed(7))
 ]);
-
 
 if(!currentLine){
 
@@ -1493,7 +1310,6 @@ currentLine.setLatLngs(linePoints);
 
 }
 
-
 if(linePoints.length>=2){
 
 document.getElementById('finishLine')
@@ -1504,11 +1320,6 @@ document.getElementById('finishLine')
 }
 
 });
-
-
-/* =========================
-   TERMINER LIGNE
-========================= */
 
 document.getElementById('finishLine').onclick=()=>{
 
@@ -1522,7 +1333,6 @@ msg('Ajoute au moins 2 points');
 return;
 
 }
-
 
 const first=linePoints[0];
 
@@ -1547,11 +1357,6 @@ document.getElementById('name').focus();
 
 };
 
-
-/* =========================
-   PHOTOS
-========================= */
-
 function renderPreview(){
 
 document.getElementById('preview').innerHTML=
@@ -1571,7 +1376,6 @@ photos.length+
 ' / 5 photos';
 
 }
-
 
 document.getElementById('preview').onclick=e=>{
 
@@ -1594,7 +1398,6 @@ renderPreview();
 }
 
 };
-
 
 document.getElementById('photos').onchange=async e=>{
 
@@ -1624,9 +1427,7 @@ await new Promise(r=>{
 let x=new FileReader();
 
 x.onload=()=>{
-
 r(x.result);
-
 };
 
 x.readAsDataURL(f);
@@ -1643,29 +1444,18 @@ renderPreview();
 
 };
 
-
-/* =========================
-   FERMER FORMULAIRE
-========================= */
-
 document.getElementById('close').onclick=()=>{
 
 point=null;
-
 photos=[];
-
 placing=false;
-
 selected=null;
-
 drawMode=null;
-
 linePoints=[];
 
 if(currentLine){
 
 map.removeLayer(currentLine);
-
 currentLine=null;
 
 }
@@ -1690,11 +1480,6 @@ renderPreview();
 
 };
 
-
-/* =========================
-   ENREGISTRER / MODIFIER
-========================= */
-
 document.getElementById('save').onclick=async()=>{
 
 let name=
@@ -1714,17 +1499,12 @@ return;
 
 }
 
-
 let editing=
 document.getElementById('save')
 .dataset.editing==='1' &&
 selected!==null;
 
-
 let geometry=null;
-
-
-/* NOUVELLE LIGNE */
 
 if(
 drawMode==='line'&&
@@ -1745,9 +1525,6 @@ Number(p[0])
 
 }
 
-
-/* MODIFICATION D'UNE LIGNE */
-
 if(editing){
 
 const current=spots[selected];
@@ -1762,9 +1539,6 @@ normalizeGeometry(current.geometry);
 }
 
 }
-
-
-/* DONNÉES */
 
 let data={
 
@@ -1796,9 +1570,6 @@ geometry:geometry
 
 };
 
-
-/* MODIFICATION */
-
 if(editing){
 
 const current=spots[selected];
@@ -1821,12 +1592,7 @@ id:current.id
 
 msg('Spot modifié ✅');
 
-}
-
-
-/* AJOUT */
-
-else{
+}else{
 
 const created=
 await addSpotToSupabase(data);
@@ -1845,9 +1611,6 @@ msg('Spot ajouté ✅');
 
 }
 
-
-/* RESET */
-
 document.getElementById('name').value='';
 
 document.getElementById('desc').value='';
@@ -1860,19 +1623,14 @@ document.getElementById('photoHelp')
 document.getElementById('photos').value='';
 
 point=null;
-
 photos=[];
-
 placing=false;
-
 drawMode=null;
-
 linePoints=[];
 
 if(currentLine){
 
 map.removeLayer(currentLine);
-
 currentLine=null;
 
 }
@@ -1903,11 +1661,6 @@ selected=null;
 
 };
 
-
-/* =========================
-   INFORMATIONS SPOT
-========================= */
-
 window.showInfo=i=>{
 
 selected=i;
@@ -1929,19 +1682,15 @@ Array.isArray(s.photos)
 ?s.photos.slice(0,5)
 :[];
 
-
 document.getElementById('infoName')
 .textContent=
 '🚵 '+s.name;
 
-
 const geometry=
 normalizeGeometry(s.geometry);
 
-
 let anchor=
 lineAnchor(s);
-
 
 if(
 geometry&&
@@ -1973,12 +1722,10 @@ Number(s.lng).toFixed(7);
 
 }
 
-
 document.getElementById('infoDesc')
 .textContent=
 s.desc||
 'Aucune description.';
-
 
 document.getElementById('infoGallery')
 .innerHTML=
@@ -1993,17 +1740,14 @@ esc(s.name)+
 
 ).join('');
 
-
 document.getElementById('infoPhotoCount')
 .textContent=
 ps.length+
 ' / 5 photos';
 
-
 document.getElementById('googleMaps')
 .href=
 gmaps(anchor.lat,anchor.lng);
-
 
 document.getElementById('info')
 .classList.add('show');
@@ -2012,11 +1756,6 @@ document.getElementById('form')
 .classList.remove('show');
 
 };
-
-
-/* =========================
-   MODIFIER
-========================= */
 
 document.getElementById('edit').onclick=()=>{
 
@@ -2027,33 +1766,23 @@ let s=spots[selected];
 let geometry=
 normalizeGeometry(s.geometry);
 
-
-/* POINT DE RÉFÉRENCE */
-
 point={
 
 lat:Number(s.lat),
-
 lng:Number(s.lng)
 
 };
-
-
-/* PHOTOS */
 
 photos=
 Array.isArray(s.photos)
 ?s.photos.slice(0,5)
 :[];
 
-
 document.getElementById('name')
 .value=s.name||'';
 
-
 document.getElementById('type')
 .value=s.type||'Descente';
-
 
 document.getElementById('diff')
 .value=
@@ -2075,15 +1804,10 @@ Number(s.diff)
 )
 );
 
-
 document.getElementById('desc')
 .value=s.desc||'';
 
-
 renderPreview();
-
-
-/* LIGNE EXISTANTE */
 
 if(
 geometry&&
@@ -2099,15 +1823,12 @@ Number(p[0]),
 Number(p[1])
 ]);
 
-
 }else{
 
 drawMode='point';
-
 linePoints=[];
 
 }
-
 
 document.getElementById('info')
 .classList.remove('show');
@@ -2124,11 +1845,6 @@ document.getElementById('save')
 
 };
 
-
-/* =========================
-   SUPPRIMER
-========================= */
-
 document.getElementById('delete').onclick=async()=>{
 
 if(selected===null)return;
@@ -2137,14 +1853,12 @@ if(!confirm(
 'Supprimer ce spot ? Cette action est irréversible.'
 ))return;
 
-
 const id=spots[selected].id;
 
 const success=
 await deleteSpotFromSupabase(id);
 
 if(!success)return;
-
 
 spots.splice(
 selected,
@@ -2162,11 +1876,6 @@ msg('Spot supprimé ✅');
 
 };
 
-
-/* =========================
-   MA POSITION
-========================= */
-
 document.getElementById('locate').onclick=()=>{
 
 if(!navigator.geolocation){
@@ -2177,15 +1886,12 @@ return msg(
 
 }
 
-
 navigator.geolocation.getCurrentPosition(
 
 p=>{
 
 let a=p.coords.latitude;
-
 let b=p.coords.longitude;
-
 
 if(
 a<B[0][0]||
@@ -2200,12 +1906,10 @@ return msg(
 
 }
 
-
 map.setView(
 [a,b],
 15
 );
-
 
 L.circleMarker(
 [a,b],
@@ -2229,11 +1933,6 @@ msg(
 
 };
 
-
-/* =========================
-   FERMER INFOS
-========================= */
-
 document.getElementById('closeInfo').onclick=()=>{
 
 selected=null;
@@ -2243,11 +1942,6 @@ document.getElementById('info')
 
 };
 
-
-/* =========================
-   MOT DE PASSE
-========================= */
-
 const lockScreen=
 document.getElementById('lockScreen');
 
@@ -2256,7 +1950,6 @@ document.getElementById('lockPassword');
 
 const lockError=
 document.getElementById('lockError');
-
 
 function unlock(){
 
@@ -2284,10 +1977,8 @@ lockPassword.select();
 
 }
 
-
 document.getElementById('lockSubmit')
 .onclick=unlock;
-
 
 lockPassword.addEventListener(
 'keydown',
@@ -2300,11 +1991,6 @@ unlock();
 }
 
 });
-
-
-/* =========================
-   CHARGEMENT INITIAL
-========================= */
 
 loadSpots();
 
