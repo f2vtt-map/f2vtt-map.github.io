@@ -12,9 +12,10 @@
 const CONFIG = {
   SUPABASE_URL: 'https://bhqhbiaejcbijlprjimy.supabase.co',
   SUPABASE_KEY: 'sb_publishable_jplSlzJVE2g_TxQB3nlp1Q_hHlhEpE1',
-  // Email du compte partagé créé dans Supabase > Authentication > Users.
-  // (Ce n'est pas un secret : seul le mot de passe protège l'accès.)
-  SHARED_EMAIL: 'CHANGE-MOI@exemple.com',
+  // Supabase Auth exige un email : on en fabrique un à partir du prénom et du nom
+  // (ex. jean.dupont@f2vtt-map.com). Aucun email n'est jamais envoyé.
+  EMAIL_DOMAIN: 'f2vtt-map.com',
+  MIN_PASSWORD: 6,
   BUCKET: 'spot-photos',
   MAX_PHOTOS: 5,
   BOUNDS: [[50.48, 2.85], [50.82, 3.35]] // MEL
@@ -98,7 +99,10 @@ function fromRow(r) {
     lat: Number(r.latitude),
     lng: Number(r.longitude),
     photos: Array.isArray(r.photos) ? r.photos.filter(safeSrc).slice(0, CONFIG.MAX_PHOTOS) : [],
-    geometry: normalizeGeometry(r.geometry)
+    geometry: normalizeGeometry(r.geometry),
+    createdBy: r.created_by || null,
+    author: r.author_name || '',
+    authorCity: r.author_city || ''
   };
 }
 
@@ -151,6 +155,7 @@ $('rotate').onclick = () => {
 let spots = [];
 let selectedId = null;       // spot affiché dans la fiche
 let appStarted = false;      // true une fois connecté
+let currentUser = null;      // {id, nom, prenom, ville}
 
 const draw = {
   mode: null,                // 'point' | 'line' | null
@@ -191,7 +196,13 @@ function rowPayload(d) {
 }
 
 async function insertSpot(d) {
-  const { data, error } = await sb.from('spots').insert(rowPayload(d)).select().single();
+  const payload = {
+    ...rowPayload(d),
+    // "Prénom N." + ville, affichés dans la fiche (created_by est rempli par la base)
+    author_name: currentUser ? currentUser.prenom + ' ' + currentUser.nom.charAt(0) + '.' : null,
+    author_city: currentUser ? currentUser.ville : null
+  };
+  const { data, error } = await sb.from('spots').insert(payload).select().single();
   if (error) throw error;
   return fromRow(data);
 }
@@ -322,6 +333,13 @@ function showInfo(id) {
     ? { lat: s.geometry.coordinates[0][1], lng: s.geometry.coordinates[0][0] }
     : { lat: s.lat, lng: s.lng };
   $('infoLoc').textContent = '📍 GPS : ' + anchor.lat.toFixed(6) + ', ' + anchor.lng.toFixed(6);
+
+  $('infoAuthor').textContent = s.author
+    ? 'Ajouté par ' + s.author + (s.authorCity ? ' · ' + s.authorCity : '')
+    : '';
+  const mine = canEdit(s);
+  $('edit').style.display = mine ? '' : 'none';
+  $('delete').style.display = mine ? '' : 'none';
 
   $('infoDesc').textContent = s.desc || 'Aucune description.';
 
@@ -601,6 +619,7 @@ $('save').onclick = async () => {
 $('edit').onclick = () => {
   const s = spots.find(x => x.id === selectedId);
   if (!s) return;
+  if (!canEdit(s)) return msg('Tu ne peux modifier que tes propres spots', true);
   resetDraw();
   resetForm();
   draw.editingId = s.id;
@@ -616,6 +635,7 @@ $('edit').onclick = () => {
 $('delete').onclick = async () => {
   const s = spots.find(x => x.id === selectedId);
   if (!s) return;
+  if (!canEdit(s)) return msg('Tu ne peux supprimer que tes propres spots', true);
   if (!confirm('Es-tu sûr de vouloir supprimer ce spot ? Cette action est irréversible.')) return;
   try {
     await deleteSpot(s.id);
@@ -656,12 +676,65 @@ $('locate').onclick = () => {
 };
 
 /* ---------------------------------------------------------------------
-   14. CONNEXION (Supabase Auth — compte partagé)
-   Le mot de passe n'apparaît nulle part dans le code : il est vérifié
-   côté serveur par Supabase, et les règles RLS bloquent toute lecture /
-   écriture pour quiconque n'est pas connecté.
+   14. COMPTES (Supabase Auth)
+   Inscription avec nom, prénom, mot de passe et ville. Supabase vérifie le
+   mot de passe côté serveur (jamais dans le code) et garde la session dans le
+   navigateur : on ne retape rien à chaque visite, sur cet appareil.
    --------------------------------------------------------------------- */
-function startApp() {
+const stripAccents = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+const slug = s => stripAccents(s).toLowerCase().replace(/[^a-z0-9]+/g, '');
+const clean = s => s.trim().replace(/\s+/g, ' ');
+const titleCase = s => s.toLocaleLowerCase('fr')
+  .replace(/(^|[\s'’-])(\p{L})/gu, (m, a, b) => a + b.toLocaleUpperCase('fr'));
+
+/** prénom + nom -> email technique (même personne = même email, sans accents ni majuscules) */
+function toEmail(nom, prenom) {
+  return slug(prenom) + '.' + slug(nom) + '@' + CONFIG.EMAIL_DOMAIN;
+}
+
+function userFromAuth(u) {
+  const m = (u && u.user_metadata) || {};
+  return { id: u.id, nom: m.nom || '', prenom: m.prenom || '', ville: m.ville || '' };
+}
+
+/** On ne modifie que ses propres spots (les anciens spots sans propriétaire restent ouverts). */
+function canEdit(spot) {
+  return !!currentUser && (spot.createdBy === null || spot.createdBy === currentUser.id);
+}
+
+let authMode = 'signup';
+function setAuthMode(mode) {
+  authMode = mode;
+  const signup = mode === 'signup';
+  $('tabSignup').classList.toggle('active', signup);
+  $('tabLogin').classList.toggle('active', !signup);
+  $('authVilleWrap').classList.toggle('hidden', !signup);
+  $('authVille').required = signup;
+  $('authPassword').autocomplete = signup ? 'new-password' : 'current-password';
+  $('lockSubmit').textContent = signup ? 'Créer mon compte' : 'Me connecter';
+  $('lockIntro').textContent = signup
+    ? 'Crée ton compte pour accéder à la carte. Le site s’en souviendra sur cet appareil.'
+    : 'Reconnecte-toi avec ton nom, ton prénom et ton mot de passe.';
+  $('lockError').textContent = '';
+}
+$('tabSignup').onclick = () => setAuthMode('signup');
+$('tabLogin').onclick = () => setAuthMode('login');
+
+function authMessage(err) {
+  const t = (err && err.message) || '';
+  if (/already|registered/i.test(t)) return 'Ce nom et ce prénom ont déjà un compte. Va dans « J’ai déjà un compte ».';
+  if (/invalid login|credentials/i.test(t)) return 'Nom, prénom ou mot de passe incorrect.';
+  if (/at least|weak|short/i.test(t)) return 'Mot de passe trop court (' + CONFIG.MIN_PASSWORD + ' caractères minimum).';
+  if (/signups?.*(not allowed|disabled)|not allowed/i.test(t)) return 'Les inscriptions sont fermées sur ce site.';
+  if (/email.*(invalid|address)|invalid.*email/i.test(t)) return 'Supabase refuse l’adresse technique : change EMAIL_DOMAIN dans script.js.';
+  if (/rate|too many/i.test(t)) return 'Trop d’essais, réessaie dans quelques minutes.';
+  return 'Connexion impossible. Réessaie.';
+}
+
+function startApp(user) {
+  currentUser = userFromAuth(user);
+  $('account').textContent = (currentUser.prenom || '?').charAt(0).toUpperCase();
+  $('account').title = 'Connecté : ' + currentUser.prenom + ' ' + currentUser.nom;
   $('lockScreen').classList.add('hidden');
   setTimeout(() => map.invalidateSize(), 50);
   if (appStarted) return;
@@ -682,36 +755,82 @@ function subscribeRealtime() {
   } catch (e) { console.warn('Temps réel indisponible :', e); }
 }
 
-$('lockCard').addEventListener('submit', async e => {
+$('authForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const pwd = $('lockPassword').value;
-  if (!pwd) return;
-  $('lockSubmit').disabled = true;
-  $('lockError').textContent = '';
-  const { error } = await sb.auth.signInWithPassword({ email: CONFIG.SHARED_EMAIL, password: pwd });
-  $('lockSubmit').disabled = false;
-  if (error) {
-    const bad = /invalid|credentials/i.test(error.message || '');
-    $('lockError').textContent = bad ? 'Mot de passe incorrect.' : 'Connexion impossible. Réessaie.';
-    $('lockPassword').focus();
-    $('lockPassword').select();
+  const nom = clean($('authNom').value);
+  const prenom = clean($('authPrenom').value);
+  const ville = clean($('authVille').value);
+  const pwd = $('authPassword').value;
+  const errBox = $('lockError');
+  errBox.textContent = '';
+
+  if (!slug(nom) || !slug(prenom)) { errBox.textContent = 'Entre ton nom et ton prénom.'; return; }
+  if (pwd.length < CONFIG.MIN_PASSWORD) {
+    errBox.textContent = 'Mot de passe : ' + CONFIG.MIN_PASSWORD + ' caractères minimum.';
     return;
   }
-  $('lockPassword').value = '';
-  startApp();
+  if (authMode === 'signup' && !ville) { errBox.textContent = 'Entre ta ville.'; return; }
+
+  const email = toEmail(nom, prenom);
+  const btn = $('lockSubmit');
+  btn.disabled = true;
+  try {
+    const result = authMode === 'signup'
+      ? await sb.auth.signUp({
+          email,
+          password: pwd,
+          options: { data: { nom: nom.toLocaleUpperCase('fr'), prenom: titleCase(prenom), ville: titleCase(ville) } }
+        })
+      : await sb.auth.signInWithPassword({ email, password: pwd });
+    if (result.error) throw result.error;
+
+    const session = result.data && result.data.session;
+    if (!session) {
+      errBox.textContent = 'Compte créé, mais Supabase attend une confirmation par email. Désactive « Confirm email » (voir README).';
+      return;
+    }
+    $('authPassword').value = '';
+    startApp(session.user);
+  } catch (ex) {
+    console.error('Erreur compte :', ex);
+    errBox.textContent = authMessage(ex);
+  } finally {
+    btn.disabled = false;
+  }
 });
 
-sb.auth.onAuthStateChange((event) => {
+$('account').onclick = async () => {
+  if (!currentUser) return;
+  const who = (currentUser.prenom + ' ' + currentUser.nom).trim() + (currentUser.ville ? ' (' + currentUser.ville + ')' : '');
+  if (!confirm('Connecté en tant que ' + who + '.\n\nTe déconnecter ?')) return;
+  await sb.auth.signOut();
+};
+
+sb.auth.onAuthStateChange(event => {
   if (event === 'SIGNED_OUT') {
     appStarted = false;
+    currentUser = null;
     spots = [];
+    selectedId = null;
+    sb.removeAllChannels();
+    resetDraw();
+    resetForm();
     spotLayer.clearLayers();
+    userLayer.clearLayers();
     hidePanels();
+    setAuthMode('login');
     $('lockScreen').classList.remove('hidden');
   }
 });
 
 (async function init() {
-  const { data } = await sb.auth.getSession();
-  if (data && data.session) startApp(); // session déjà ouverte : pas de re-saisie
+  setAuthMode('signup');
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) startApp(data.session.user); // session déjà ouverte : rien à retaper
+  } catch (e) {
+    console.error('Session illisible :', e);
+  } finally {
+    $('lockScreen').classList.remove('checking');
+  }
 })();
