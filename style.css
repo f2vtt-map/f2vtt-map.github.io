@@ -238,3 +238,50 @@ textarea{min-height:80px;resize:vertical}
   .panel{left:auto;right:16px;width:400px;bottom:16px}
   .gallery img{height:240px}
 }
+
+/* ---------- Hauteur écran réelle (barres du navigateur mobile) ---------- */
+html,body{height:100vh;height:100dvh}
+
+/* ---------- Mobile : carte plein écran, sans bandeau noir ---------- */
+@media(max-width:768px){
+  body{background:#e5e7eb}
+
+  /* L'en-tête sort du flux : plus de barre noire, juste le nom en pastille sur la carte */
+  #appHeader{
+    position:fixed;z-index:9000;
+    top:calc(10px + env(safe-area-inset-top));
+    left:max(10px,env(safe-area-inset-left));
+    right:auto;width:auto;height:auto;padding:0;background:transparent
+  }
+  .brand{
+    background:#000;border-radius:12px;padding:6px 12px 6px 8px;
+    box-shadow:0 2px 10px #0004
+  }
+  .by{display:none}
+
+  /* Bouton compte : sous la pastille */
+  .acctBtn{
+    position:fixed;z-index:9000;
+    top:calc(58px + env(safe-area-inset-top));
+    left:max(10px,env(safe-area-inset-left));
+    box-shadow:0 2px 10px #0004
+  }
+
+  /* Boutons Leaflet : on évite l'encoche et la barre d'accueil iPhone */
+  .leaflet-top{margin-top:env(safe-area-inset-top)}
+  .leaflet-bottom{margin-bottom:env(safe-area-inset-bottom)}
+
+  /* « Ajouter un spot » : bouton rond + (FAB), au-dessus du bouton de position */
+  #add{
+    position:fixed;z-index:9000;
+    right:max(9px,env(safe-area-inset-right));
+    bottom:calc(92px + env(safe-area-inset-bottom));
+    width:56px;height:56px;min-height:0;padding:0;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px #0004
+  }
+  #add .add-label{display:none}
+  #add .add-plus{font-size:30px;line-height:1;font-weight:400}
+  /* masqué pendant un tracé pour ne pas gêner la barre de dessin */
+  body:has(#drawBar.show) #add{display:none}
+}
