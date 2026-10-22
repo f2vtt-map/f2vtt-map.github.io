@@ -1,6 +1,6 @@
 /* =====================================================================
    F2VTT Map — by Ghilas
-   Leaflet + leaflet-rotate + Supabase (Auth, Postgres, Storage)
+   Leaflet + Supabase (Auth, Postgres, Storage)
    ===================================================================== */
 'use strict';
 
@@ -58,10 +58,38 @@ function msg(text, isError = false) {
   el.classList.toggle('error', !!isError);
   el.style.display = 'block';
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.style.display = 'none'; }, isError ? 3500 : 2200);
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, isError ? 6000 : 2200);
 }
 
 const clampDiff = d => Math.min(5, Math.max(0, Number.isFinite(Number(d)) ? Number(d) : 0));
+
+/** Transforme une erreur Supabase / réseau en phrase compréhensible pour l'utilisateur. */
+function errorMessage(err, what) {
+  const code = String((err && (err.code || err.statusCode)) || '');
+  const text = String((err && (err.message || err.error_description)) || err || '');
+  let reason;
+  if (code === 'PGRST204' || /schema cache/i.test(text)) {
+    const col = (text.match(/'([^']+)' column/) || [])[1];
+    reason = 'la base ne connaît pas la colonne « ' + (col || '?') + ' ». Lance supabase.sql dans Supabase (SQL Editor).';
+  } else if (code === 'PGRST116' || /Aucune ligne/i.test(text)) {
+    reason = 'spot introuvable, ou tu n’en es pas le propriétaire.';
+  } else if (code === '42501' || /row-level security|permission denied|not authorized/i.test(text)) {
+    reason = 'accès refusé. Reconnecte-toi, et vérifie que c’est bien ton spot.';
+  } else if (/jwt|PGRST30\d/i.test(code + ' ' + text)) {
+    reason = 'ta session a expiré. Déconnecte-toi puis reconnecte-toi.';
+  } else if (code === '23514' || /check constraint/i.test(text)) {
+    reason = 'données refusées par la base (catégorie, difficulté ou nombre de photos).';
+  } else if (/bucket not found/i.test(text)) {
+    reason = 'le stockage photo « ' + CONFIG.BUCKET + ' » n’existe pas. Lance supabase.sql.';
+  } else if (/maximum allowed size|payload too large|413/i.test(text)) {
+    reason = 'une photo est trop lourde (5 Mo maximum).';
+  } else if (/failed to fetch|network|load failed/i.test(text)) {
+    reason = 'pas de connexion à Internet.';
+  } else {
+    reason = text ? text.slice(0, 120) : 'erreur inconnue.';
+  }
+  return what + ' impossible : ' + reason;
+}
 
 function inBounds(lat, lng) {
   const [[s, w], [n, e]] = CONFIG.BOUNDS;
@@ -115,11 +143,7 @@ const map = L.map('map', {
   minZoom: 10,
   maxZoom: 18,
   zoomControl: false,
-  zoomAnimation: false,
-  rotate: true,              // leaflet-rotate
-  touchRotate: true,         // rotation à deux doigts
-  rotateControl: false,      // on utilise notre propre bouton ↻
-  bearing: 0
+  zoomAnimation: false
 });
 map.fitBounds(CONFIG.BOUNDS);
 
@@ -144,11 +168,6 @@ const userLayer = L.layerGroup().addTo(map); // position de l'utilisateur
 $('zoomIn').onclick = () => map.zoomIn();
 $('zoomOut').onclick = () => map.zoomOut();
 
-$('rotate').onclick = () => {
-  if (typeof map.setBearing !== 'function') return msg('Rotation indisponible sur ce navigateur', true);
-  map.setBearing(((map.getBearing() || 0) + 45) % 360);
-};
-
 /* ---------------------------------------------------------------------
    5. ÉTAT
    --------------------------------------------------------------------- */
@@ -156,6 +175,7 @@ let spots = [];
 let selectedId = null;       // spot affiché dans la fiche
 let appStarted = false;      // true une fois connecté
 let currentUser = null;      // {id, nom, prenom, ville}
+let authorColumnsMissing = false; // colonnes author_* absentes de la base (SQL pas relancé)
 
 const draw = {
   mode: null,                // 'point' | 'line' | null
@@ -174,7 +194,7 @@ async function loadSpots() {
   const { data, error } = await sb.from('spots').select('*').order('created_at', { ascending: true });
   if (error) {
     console.error('Erreur chargement spots :', error);
-    msg('Erreur de connexion à Supabase', true);
+    msg(errorMessage(error, 'Chargement des spots'), true);
     return;
   }
   spots = (data || []).map(fromRow);
@@ -196,13 +216,25 @@ function rowPayload(d) {
 }
 
 async function insertSpot(d) {
+  // Colonnes envoyées : name, description, category, difficulty, latitude, longitude,
+  // photos, geometry, author_name, author_city  (+ created_by, rempli par la base)
+  const base = rowPayload(d);
   const payload = {
-    ...rowPayload(d),
-    // "Prénom N." + ville, affichés dans la fiche (created_by est rempli par la base)
+    ...base,
+    // "Prénom N." + ville, affichés dans la fiche
     author_name: currentUser ? currentUser.prenom + ' ' + currentUser.nom.charAt(0) + '.' : null,
     author_city: currentUser ? currentUser.ville : null
   };
-  const { data, error } = await sb.from('spots').insert(payload).select().single();
+  authorColumnsMissing = false;
+  let { data, error } = await sb.from('spots').insert(payload).select().single();
+
+  // Colonnes « auteur » absentes (supabase.sql pas encore relancé) : on enregistre
+  // quand même le spot, sans l'auteur, au lieu de bloquer l'utilisateur.
+  if (error && error.code === 'PGRST204' && /author_(name|city)/.test(error.message || '')) {
+    console.warn('Colonnes author_* absentes : insertion sans auteur.', error);
+    authorColumnsMissing = true;
+    ({ data, error } = await sb.from('spots').insert(base).select().single());
+  }
   if (error) throw error;
   return fromRow(data);
 }
@@ -602,12 +634,14 @@ $('save').onclick = async () => {
     }
     const saved = await insertSpot({ ...base, lat: draw.point.lat, lng: draw.point.lng, geometry });
     spots.push(saved);
-    msg('Spot ajouté ✅');
+    msg(authorColumnsMissing
+      ? 'Spot ajouté ✅ (sans auteur : lance supabase.sql dans Supabase)'
+      : 'Spot ajouté ✅');
     resetDraw(); resetForm(); $('form').classList.remove('show'); render();
   } catch (err) {
     console.error('Erreur enregistrement :', err);
     await removeFromStorage(uploaded);
-    msg('Erreur lors de l’enregistrement', true);
+    msg(errorMessage(err, 'Enregistrement'), true);
     btn.disabled = false;
     btn.textContent = label;
   }
@@ -646,7 +680,7 @@ $('delete').onclick = async () => {
     msg('Spot supprimé ✅');
   } catch (err) {
     console.error('Erreur suppression :', err);
-    msg('Erreur lors de la suppression', true);
+    msg(errorMessage(err, 'Suppression'), true);
   }
 };
 
