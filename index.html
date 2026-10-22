@@ -12,17 +12,30 @@
 
 <body>
 
-<!-- ============ ÉCRAN DE CONNEXION ============ -->
-<div id="lockScreen">
-  <form id="lockCard" autocomplete="on">
+<!-- ============ ÉCRAN D'INSCRIPTION / CONNEXION ============ -->
+<div id="lockScreen" class="checking">
+  <div id="lockCard">
     <img id="lockLogo" src="assets/logo.png" alt="Logo F2VTT" onerror="this.style.display='none'">
     <h1><span class="green">F2VTT</span> Map</h1>
-    <p>Entre le mot de passe pour accéder à la carte.</p>
-    <div id="lockVersion">Version 12.0</div>
-    <input id="lockPassword" type="password" autocomplete="current-password" placeholder="Mot de passe" required>
-    <button id="lockSubmit" type="submit">Accéder</button>
-    <div id="lockError" aria-live="polite"></div>
-  </form>
+    <p id="lockIntro"></p>
+    <div id="lockVersion">Version 12.1</div>
+
+    <div class="auth-tabs">
+      <button type="button" id="tabSignup" class="active">Créer mon compte</button>
+      <button type="button" id="tabLogin">J’ai déjà un compte</button>
+    </div>
+
+    <form id="authForm" autocomplete="on">
+      <input id="authNom" placeholder="NOM" autocomplete="family-name" maxlength="40" required>
+      <input id="authPrenom" placeholder="Prénom" autocomplete="given-name" maxlength="40" required>
+      <input id="authPassword" type="password" placeholder="Mot de passe" autocomplete="new-password" required>
+      <div id="authVilleWrap">
+        <input id="authVille" placeholder="Ville (pas l’adresse complète)" autocomplete="address-level2" maxlength="60" required>
+      </div>
+      <button id="lockSubmit" type="submit">Créer mon compte</button>
+      <div id="lockError" aria-live="polite"></div>
+    </form>
+  </div>
 </div>
 
 <!-- ============ EN-TÊTE ============ -->
@@ -33,7 +46,10 @@
     <span class="mapword">Map</span>
     <span class="by">by Ghilas</span>
   </div>
-  <button class="btn" id="add" type="button">＋ Ajouter un spot</button>
+  <div class="head-right">
+    <button class="btn" id="add" type="button">＋ Ajouter un spot</button>
+    <button class="acctBtn" id="account" type="button" title="Mon compte" aria-label="Mon compte">👤</button>
+  </div>
 </header>
 
 <!-- ============ CARTE ============ -->
@@ -128,6 +144,7 @@
   <h2 id="infoName"></h2>
   <div id="infoMeta" class="muted"></div>
   <div id="infoLoc" class="muted"></div>
+  <div id="infoAuthor" class="muted"></div>
 
   <div id="infoGallery" class="gallery"></div>
   <div id="infoPhotoCount" class="photo-count"></div>
