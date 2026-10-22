@@ -30,6 +30,13 @@ body{display:flex;flex-direction:column;overflow:hidden;background:#000;-webkit-
   background:var(--green);color:#000;font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap
 }
 .btn:active{transform:scale(.97)}
+.head-right{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.acctBtn{
+  width:44px;height:44px;border-radius:50%;border:2px solid var(--green);
+  background:#111;color:#fff;font-size:17px;font-weight:700;cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center
+}
+.acctBtn:active{transform:scale(.95)}
 @media(max-width:380px){.by{display:none}.brand{font-size:17px}.btn{padding:0 10px;font-size:14px}}
 
 /* ---------- Carte ---------- */
@@ -209,12 +216,21 @@ textarea{min-height:80px;resize:vertical}
 #lockCard h1{margin:0 0 6px;font-size:26px}
 #lockCard p{margin:0 0 18px;color:#9ca3af;font-size:13px}
 #lockVersion{margin:-8px 0 14px;color:#6b7280;font-size:11px}
-#lockPassword{margin:0 0 10px;border-color:#444}
+#lockCard input{margin:0 0 10px;border-color:#444}
 #lockSubmit{
   width:100%;min-height:48px;border:0;border-radius:10px;background:var(--green);
   color:#000;font-weight:700;font-size:16px;cursor:pointer
 }
 #lockSubmit:disabled{opacity:.6;cursor:wait}
+#authForm{text-align:left}
+#lockScreen.checking #lockCard{visibility:hidden}
+.hidden{display:none!important}
+.auth-tabs{display:flex;gap:6px;margin:0 0 14px;background:#1f1f1f;border-radius:12px;padding:4px}
+.auth-tabs button{
+  flex:1;min-height:42px;border:0;border-radius:9px;background:transparent;
+  color:#9ca3af;font-weight:700;font-size:13px;cursor:pointer
+}
+.auth-tabs button.active{background:var(--green);color:#000}
 #lockError{min-height:18px;margin-top:10px;color:#f87171;font-size:13px}
 
 /* ---------- Bureau / tablette ---------- */
