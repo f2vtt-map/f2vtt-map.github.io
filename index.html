@@ -47,7 +47,7 @@
     <span class="by">by Ghilas</span>
   </div>
   <div class="head-right">
-    <button class="btn" id="add" type="button">＋ Ajouter un spot</button>
+    <button class="btn" id="add" type="button" aria-label="Ajouter un spot"><span class="add-plus">＋</span><span class="add-label"> Ajouter un spot</span></button>
     <button class="acctBtn" id="account" type="button" title="Mon compte" aria-label="Mon compte">👤</button>
   </div>
 </header>
@@ -58,7 +58,6 @@
 <div id="zoomControls" aria-label="Contrôles de la carte">
   <button class="ctrlBtn" id="zoomIn" type="button" title="Zoom avant" aria-label="Zoom avant">＋</button>
   <button class="ctrlBtn" id="zoomOut" type="button" title="Zoom arrière" aria-label="Zoom arrière">−</button>
-  <button class="ctrlBtn" id="rotate" type="button" title="Faire pivoter de 45°" aria-label="Faire pivoter la carte">↻</button>
 </div>
 
 <button id="locate" type="button" title="Ma position" aria-label="Ma position">⌾</button>
@@ -163,7 +162,6 @@
 
 <!-- Bibliothèques -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
-<script src="https://unpkg.com/@tomickigrzegorz/leaflet-rotate@0.2.3/dist/leaflet-rotate.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="script.js"></script>
 </body>
