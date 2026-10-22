@@ -1,0 +1,224 @@
+/* ===== F2VTT Map — noir / vert / blanc ===== */
+*{box-sizing:border-box}
+:root{
+  --green:#22c55e;
+  --green-dark:#188038;
+  --ink:#202124;
+  --muted:#5f6368;
+  --line:#dadce0;
+  --header-h:56px;
+}
+html,body{margin:0;width:100%;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+body{display:flex;flex-direction:column;overflow:hidden;background:#000;-webkit-text-size-adjust:100%}
+.green{color:var(--green)}
+
+/* ---------- En-tête ---------- */
+#appHeader{
+  flex:0 0 auto;
+  height:calc(var(--header-h) + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left));
+  background:#000;color:#fff;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  z-index:9000
+}
+.brand{display:flex;align-items:center;gap:6px;font-size:19px;font-weight:700;min-width:0;white-space:nowrap}
+.brand-logo{width:30px;height:30px;object-fit:contain;border-radius:6px;flex:0 0 auto}
+.mapword{color:#fff}
+.by{font-size:10px;font-weight:500;color:#9ca3af;align-self:flex-end;margin-bottom:3px}
+.btn{
+  min-height:44px;padding:0 14px;border:0;border-radius:12px;
+  background:var(--green);color:#000;font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap
+}
+.btn:active{transform:scale(.97)}
+@media(max-width:380px){.by{display:none}.brand{font-size:17px}.btn{padding:0 10px;font-size:14px}}
+
+/* ---------- Carte ---------- */
+#map{flex:1 1 auto;min-height:0;width:100%;background:#e5e7eb}
+
+.ctrlBtn,#locate{
+  width:46px;height:46px;border:1px solid #d1d5db;border-radius:14px;
+  background:#fff;color:var(--ink);font-size:24px;line-height:1;
+  box-shadow:0 3px 12px #0003;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
+  -webkit-tap-highlight-color:transparent
+}
+.ctrlBtn:hover,#locate:hover{background:#f7f7f7}
+.ctrlBtn:active,#locate:active{transform:scale(.95)}
+
+#zoomControls{
+  position:fixed;z-index:9000;
+  left:max(14px,env(safe-area-inset-left));
+  bottom:calc(30px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:8px
+}
+#locate{
+  position:fixed;z-index:9000;
+  right:max(14px,env(safe-area-inset-right));
+  bottom:calc(30px + env(safe-area-inset-bottom));
+  font-size:24px
+}
+
+#credits{
+  position:fixed;z-index:8999;
+  left:max(14px,env(safe-area-inset-left));
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  font-size:10px;color:#374151;
+  background:rgba(255,255,255,.85);padding:1px 5px;border-radius:3px
+}
+#credits a{color:inherit;text-decoration:none}
+#credits a:hover{text-decoration:underline}
+
+/* Contrôle des calques Leaflet */
+.leaflet-control-layers{border-radius:12px!important;box-shadow:0 3px 12px #0003!important;border:1px solid #d1d5db!important}
+.leaflet-control-layers-toggle{width:44px!important;height:44px!important}
+.leaflet-control-layers-expanded{padding:8px 12px!important;font-size:14px}
+.leaflet-container{font-family:inherit}
+
+/* Marqueurs */
+.spot-pin{
+  width:36px;height:36px;border-radius:50%;
+  background:#fff;border:4px solid #888;
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;line-height:1;
+  box-shadow:0 2px 6px #0006
+}
+.user-dot{
+  width:18px;height:18px;border-radius:50%;
+  background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 2px #1a73e8,0 2px 6px #0006
+}
+
+/* ---------- Toast ---------- */
+#status{
+  position:fixed;z-index:10100;left:50%;transform:translateX(-50%);
+  bottom:calc(92px + env(safe-area-inset-bottom));
+  max-width:calc(100% - 32px);
+  background:#202124;color:#fff;padding:10px 14px;border-radius:12px;
+  font-size:14px;text-align:center;display:none;box-shadow:0 3px 12px #0005
+}
+#status.error{background:#b3261e}
+
+/* ---------- Barre de dessin ---------- */
+#drawBar{
+  position:fixed;z-index:10050;left:50%;transform:translateX(-50%);
+  bottom:calc(92px + env(safe-area-inset-bottom));
+  display:none;gap:8px;flex-wrap:wrap;justify-content:center;
+  width:max-content;max-width:calc(100% - 24px)
+}
+#drawBar.show{display:flex}
+#drawBar button{
+  min-height:44px;padding:0 14px;border:0;border-radius:12px;
+  font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 3px 12px #0004
+}
+#finishLine{background:var(--green-dark);color:#fff;display:none}
+#finishLine.show{display:block}
+#undoPoint{background:#fff;color:var(--ink);display:none}
+#undoPoint.show{display:block}
+#cancelDraw{background:#fff;color:#c5221f}
+
+/* ---------- Panneaux ---------- */
+.panel{
+  position:fixed;z-index:10000;
+  left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));
+  max-height:78vh;max-height:78dvh;overflow:auto;-webkit-overflow-scrolling:touch;
+  background:#fff;color:var(--ink);
+  border-radius:20px;padding:16px;display:none;
+  box-shadow:0 8px 30px #0005
+}
+.panel.show{display:block}
+.panel h2{margin:0 0 8px;font-size:20px;padding-right:44px}
+.muted,.photo-count{color:var(--muted);font-size:13px}
+#drawChoice{z-index:10060}
+
+label{display:block;font-size:13px;color:var(--muted);margin-top:10px}
+input,textarea,select{
+  width:100%;font:inherit;font-size:16px; /* 16px : évite le zoom auto d'iOS */
+  margin:5px 0 8px;padding:11px;border:1px solid var(--line);border-radius:10px;
+  background:#fff;color:var(--ink)
+}
+textarea{min-height:80px;resize:vertical}
+.row{display:flex;gap:8px}
+.row>div{flex:1;min-width:0}
+
+.actions{display:flex;gap:8px}
+.actions button{flex:1;min-height:46px;border:0;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer}
+.actions button:disabled{opacity:.6;cursor:wait}
+.save{background:var(--green-dark);color:#fff}
+.cancel{background:#f1f3f4;color:var(--ink)}
+
+.draw-choice-actions{display:flex;gap:8px;margin-top:14px}
+.draw-choice-btn{
+  flex:1;min-height:52px;padding:10px;border:0;border-radius:11px;
+  background:#f1f3f4;color:var(--ink);font-weight:700;font-size:14px;cursor:pointer
+}
+.draw-choice-btn:hover{background:#e8eaed}
+.draw-choice-btn:active{transform:scale(.98)}
+
+/* Aperçu des photos du formulaire */
+.preview{display:flex;gap:10px;overflow-x:auto;margin:6px 0 10px;padding-top:8px}
+.thumb{position:relative;flex:0 0 auto}
+.thumb img{width:76px;height:62px;object-fit:cover;border-radius:8px;display:block}
+.thumb button{
+  position:absolute;top:-8px;right:-8px;width:26px;height:26px;border-radius:50%;
+  border:2px solid #fff;background:#d93025;color:#fff;font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0
+}
+
+/* Fiche */
+.close-info{
+  position:absolute;top:8px;right:10px;width:44px;height:44px;border:0;background:transparent;
+  color:var(--ink);font-size:32px;line-height:1;border-radius:10px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center
+}
+.close-info:hover{background:#f1f3f4}
+.gallery{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;margin:8px 0 4px}
+.gallery:empty{display:none}
+.gallery img{
+  width:100%;max-width:100%;height:210px;object-fit:cover;border-radius:12px;
+  flex:0 0 100%;scroll-snap-align:start;cursor:zoom-in
+}
+.info-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.act-btn{
+  display:flex;align-items:center;justify-content:center;width:100%;height:46px;
+  border:0;border-radius:11px;padding:0;font:inherit;font-size:15px;font-weight:700;
+  text-align:center;text-decoration:none;cursor:pointer
+}
+.act-btn.maps{background:#1a73e8;color:#fff}
+.act-btn.edit{background:var(--green-dark);color:#fff}
+.act-btn.del{background:#fce8e6;color:#c5221f}
+.act-btn:active{transform:scale(.98)}
+
+/* Visionneuse */
+#lightbox{
+  position:fixed;inset:0;z-index:30000;background:rgba(0,0,0,.92);
+  display:none;align-items:center;justify-content:center;padding:12px;cursor:zoom-out
+}
+#lightbox.show{display:flex}
+#lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+
+/* ---------- Écran de connexion ---------- */
+#lockScreen{
+  position:fixed;inset:0;z-index:20000;background:#000;
+  display:flex;align-items:center;justify-content:center;padding:20px
+}
+#lockScreen.hidden{display:none}
+#lockCard{
+  width:min(390px,100%);background:#111;color:#fff;border-radius:20px;
+  padding:24px;box-shadow:0 8px 30px #0008;text-align:center
+}
+#lockLogo{width:76px;height:76px;object-fit:contain;border-radius:14px;display:block;margin:0 auto 14px}
+#lockCard h1{margin:0 0 6px;font-size:26px}
+#lockCard p{margin:0 0 18px;color:#9ca3af;font-size:13px}
+#lockVersion{margin:-8px 0 14px;color:#6b7280;font-size:11px}
+#lockPassword{margin:0 0 10px;border-color:#444}
+#lockSubmit{
+  width:100%;min-height:48px;border:0;border-radius:10px;background:var(--green);
+  color:#000;font-weight:700;font-size:16px;cursor:pointer
+}
+#lockSubmit:disabled{opacity:.6;cursor:wait}
+#lockError{min-height:18px;margin-top:10px;color:#f87171;font-size:13px}
+
+/* ---------- Bureau / tablette ---------- */
+@media(min-width:700px){
+  .panel{left:auto;right:16px;width:400px;bottom:16px}
+  .gallery img{height:240px}
+}
