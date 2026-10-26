@@ -271,11 +271,33 @@ html,body{height:100vh;height:100dvh}
   .leaflet-top{margin-top:env(safe-area-inset-top)}
   .leaflet-bottom{margin-bottom:env(safe-area-inset-bottom)}
 
-  /* « Ajouter un spot » : bouton rond + (FAB), au-dessus du bouton de position */
+  /* « Calques » : le contrôle Leaflet passe du coin haut droit au coin bas droit.
+     Il est ancré par le bas, donc son menu s'ouvre vers le haut ; le z-index le
+     garde au-dessus des autres boutons flottants quand il est déplié. */
+  .leaflet-top.leaflet-right{
+    top:auto;
+    bottom:calc(16px + env(safe-area-inset-bottom));
+    right:max(12px,env(safe-area-inset-right));
+    margin:0;z-index:9500
+  }
+  .leaflet-top.leaflet-right .leaflet-control{margin:0}
+  .leaflet-control-attribution{font-size:10px}
+
+  /* Bouton de position : juste au-dessus du bouton « Calques » */
+  #locate{
+    right:max(12px,env(safe-area-inset-right));
+    bottom:calc(72px + env(safe-area-inset-bottom))
+  }
+
+  /* Barre de tracé et messages : au-dessus de la colonne de boutons de droite */
+  #drawBar,#status{bottom:calc(132px + env(safe-area-inset-bottom))}
+
+  /* « Ajouter un spot » : bouton rond + (FAB), en haut à droite */
   #add{
     position:fixed;z-index:9000;
-    right:max(9px,env(safe-area-inset-right));
-    bottom:calc(92px + env(safe-area-inset-bottom));
+    top:calc(12px + env(safe-area-inset-top));
+    right:max(12px,env(safe-area-inset-right));
+    bottom:auto;
     width:56px;height:56px;min-height:0;padding:0;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 4px 14px #0004
